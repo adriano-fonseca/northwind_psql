@@ -1,4 +1,5 @@
---http://sqlfiddle.com/#!18/c0701/1
+-- http://sqlfiddle.com/#!18/c0701/1
+-- https://stackoverflow.com/questions/32876744/ranking-teams-equal-on-points-in-a-pool-based-on-who-won-the-game-they-played
 
 SELECT 
 	HT.id AS id, 
