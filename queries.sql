@@ -255,3 +255,48 @@ group by EXTRACT(MONTH FROM required_date),
 	 EXTRACT(YEAR FROM required_date)
 order by month_desc
 
+--You are given a table segments with the following structure:
+
+--  create table segments (
+--      l integer not null,
+--      r integer not null,
+--      check(l <= r),
+--      unique(l,r)
+--  );
+--Each record in this table represents a contiguous segment of a line, from l to r inclusive. Its length equals r − l.
+--Consider the parts of a line covered by the segments. Write an SQL query that returns the total length of all the parts of the line covered by the segments specified in the table segments. Please note that any parts of the line that are covered by several overlapping segments should be counted only once.
+
+--For example, given:
+
+--  l | r
+--  --+--
+--  1 | 5
+--  2 | 3
+--  4 | 6
+--your query should return 5, as the segments cover the part of the line from 1 to 6.
+
+
+WITH recursive
+min_max AS (
+	    SELECT 
+		min(l) min_l,
+		max(r) max_r 
+	    FROM segments
+	    ),
+	    
+cnt(x)  AS (
+	    SELECT min_l as x 
+	    FROM min_max 
+	    UNION ALL 
+	    SELECT x+1 
+	    FROM cnt 
+	    WHERE x< (
+		      SELECT 
+			max_r 
+		      FROM 
+			min_max
+		      )
+	    )
+SELECT count(distinct x)
+FROM cnt
+JOIN segments s on cnt.x between s.l and s.r-1

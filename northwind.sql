@@ -3905,6 +3905,21 @@ ALTER TABLE ONLY customer_customer_demo
 ALTER TABLE ONLY employees
     ADD CONSTRAINT fk_employees_employees FOREIGN KEY (reports_to) REFERENCES employees;
 
+
+--
+-- Name: segments
+--
+
+create table segments (
+      l integer not null,
+      r integer not null,
+      check(l <= r),
+      unique(l,r)
+  );
+
+insert into segments values (1,5);
+insert into segments values (2,3);
+insert into segments values (4,6);
     
 --
 -- PostgreSQL database dump complete
