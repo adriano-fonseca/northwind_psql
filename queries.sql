@@ -4,12 +4,13 @@ FROM Customers c LEFT JOIN orders o
 ON (c.customer_id = o.customer_id)
 WHERE o.order_id IS NULL
 
+-- Number of order from user PARIS and FISSA
 SELECT COUNT(*)
 FROM
 orders o 
 WHERE o.customer_id = 'PARIS' OR o.customer_id = 'FISSA'
 
---Orders number by Costumer
+--Number of orders by Costumer
 SELECT cos.customer_id, cos.contact_name, count(o.*) as order_number
 FROM orders o 
 INNER JOIN order_details od on (o.order_id = od.order_id)
@@ -17,7 +18,7 @@ RIGHT JOIN customers cos on (o.customer_id = cos.customer_id)
 GROUP BY cos.customer_id
 ORDER By order_number desc
 
---Orders number to Costumer with more than 100 orders
+--Orders number from Costumers with more than 100 orders
 SELECT cos.customer_id, cos.contact_name, count(o.*) as order_number
 FROM orders o 
 INNER JOIN order_details od on (o.order_id = od.order_id)
@@ -27,7 +28,7 @@ HAVING count(o.*) > 100
 ORDER By order_number desc
 
 
---Orders number to costumer with orders between 45 and 50
+--Orders number fom costumer with orders between 45 and 50
 SELECT * 
 FROM (
 	SELECT cos.customer_id, cos.contact_name, count(o.*) as order_number
@@ -55,8 +56,8 @@ GROUP BY numberOrders.customer_id, numberOrders.contact_name, numberOrders.order
 HAVING order_number = 48
 
 
---Orders Value by Costumer
-SELECT cos.customer_id, cos.contact_name , COALESCE(round(cast(((od.quantity * unit_price) - discount) as numeric), 2), 0) as total
+--Orders Value by Costumer (right join brings even clients without orders)
+SELECT cos.customer_id, cos.contact_name , COALESCE(round(cast(((od.quantity * unit_price) - discount) as numeric), 2), 0) as order_value
 FROM orders o 
 INNER JOIN order_details od on (o.order_id = od.order_id)
 RIGHT JOIN customers cos on (o.customer_id = cos.customer_id)
@@ -107,7 +108,61 @@ FROM
 	order by total desc
 	) AS expensiveOrders
 
---Second Expensive Order done so far
+
+--Second order done so far
+SELECT MAX(expensiveOrders.total)
+FROM
+	(
+	select cos.customer_id as id, cos.contact_name as customer_name , COALESCE(MAX(ROUND(cast(((od.quantity * unit_price) - discount) as numeric), 2)), 0) as total
+	from orders o 
+	inner join order_details od on (o.order_id = od.order_id)
+	right join customers cos on (o.customer_id = cos.customer_id)
+	group by cos.customer_id
+	order by total desc
+	) AS expensiveOrders
+WHERE expensiveOrders.total < (
+				SELECT MAX(expensiveOrders.total)
+				FROM
+					(
+					select cos.customer_id as id, cos.contact_name as customer_name , COALESCE(MAX(ROUND(cast(((od.quantity * unit_price) - discount) as numeric), 2)), 0) as total
+					from orders o 
+					inner join order_details od on (o.order_id = od.order_id)
+					right join customers cos on (o.customer_id = cos.customer_id)
+					group by cos.customer_id
+					order by total desc
+					) AS expensiveOrders
+				)
+
+--The order more expensive from each client that is lower than the more expensive order done so far
+SELECT MAX(expensiveOrders.total) as valor, expensiveOrders.id
+FROM
+	(
+	select cos.customer_id as id, cos.contact_name as customer_name , COALESCE(MAX(ROUND(cast(((od.quantity * unit_price) - discount) as numeric), 2)), 0) as total
+	from orders o 
+	inner join order_details od on (o.order_id = od.order_id)
+	right join customers cos on (o.customer_id = cos.customer_id)
+	group by cos.customer_id
+	order by total desc
+	) AS expensiveOrders
+WHERE expensiveOrders.total < (
+				SELECT MAX(expensiveOrders.total)
+				FROM
+					(
+					select cos.customer_id as id, cos.contact_name as customer_name , COALESCE(MAX(ROUND(cast(((od.quantity * unit_price) - discount) as numeric), 2)), 0) as total
+					from orders o 
+					inner join order_details od on (o.order_id = od.order_id)
+					right join customers cos on (o.customer_id = cos.customer_id)
+					group by cos.customer_id
+					order by total desc
+					) AS expensiveOrders
+				)
+group by expensiveOrders.id
+order by valor desc
+
+
+
+
+--First,Second and third Expensives Order done so far
 SELECT * 
 FROM
 (
@@ -119,7 +174,7 @@ group by cos.customer_id
 order by total desc
 )Expensives
 ORDER BY total desc
-LIMIT 2
+LIMIT 3
 	
 
 --Cheap Orders by client
@@ -151,3 +206,52 @@ from order_details
 where order_id IN (
 Select order_id from orders o where o.customer_id = 'LAZYK'
 )
+--Orders number by month in 1997
+SELECT count(*), 
+	to_char(to_timestamp(to_char(EXTRACT(MONTH FROM required_date), '999'), 'MM'), 'Mon') as month_order, 
+	EXTRACT(MONTH FROM required_date) as month_id,
+	EXTRACT(YEAR FROM required_date) as year_order
+from orders o 
+inner join order_details od on (o.order_id = od.order_id)
+right join customers cos on (o.customer_id = cos.customer_id)
+where EXTRACT(YEAR FROM required_date) = 1997
+group by to_char(to_timestamp(to_char(EXTRACT(MONTH FROM required_date), '999'), 'MM'), 'Mon'),
+	 EXTRACT(MONTH FROM required_date), 	
+	 EXTRACT(YEAR FROM required_date)
+order by month_id
+
+--Orders number in January
+SELECT count(*), EXTRACT(MONTH FROM required_date) as month_order
+FROM orders o 
+INNER JOIN order_details od on (o.order_id = od.order_id)
+RIGHT JOIN customers cos on (o.customer_id = cos.customer_id)
+WHERE EXTRACT(MONTH FROM required_date) = 1
+AND EXTRACT(YEAR FROM required_date) = 1997
+GROUP BY EXTRACT(MONTH FROM required_date)
+
+--Show orders in 1997 an extract day of the week, month and year and set a decription to this day and month
+SELECT 	required_date,EXTRACT(dow FROM required_date) as day_id,
+	to_char(required_date, 'dy') as day_desc,
+	EXTRACT(MONTH FROM required_date) as month_id,
+	to_char(to_timestamp(to_char(EXTRACT(MONTH FROM required_date), '999'), 'MM'), 'Mon') as month_desc, 
+	EXTRACT(YEAR FROM required_date) as year
+FROM orders o 
+INNER JOIN order_details od on (o.order_id = od.order_id)
+right JOIN customers cos on (o.customer_id = cos.customer_id)
+WHERE EXTRACT(YEAR FROM required_date) = 1997
+order by month_desc
+
+--Show number of orders by month
+SELECT count(*), 
+	EXTRACT(MONTH FROM required_date) as month_id,
+	to_char(to_timestamp(to_char(EXTRACT(MONTH FROM required_date), '999'), 'MM'), 'Mon') as month_desc, 
+	EXTRACT(YEAR FROM required_date) as year
+FROM orders o 
+INNER JOIN order_details od on (o.order_id = od.order_id)
+right JOIN customers cos on (o.customer_id = cos.customer_id)
+where EXTRACT(YEAR FROM required_date) = 1997
+group by EXTRACT(MONTH FROM required_date), 	
+	 to_char(to_timestamp(to_char(EXTRACT(MONTH FROM required_date), '99'), 'MM'), 'Mon'),
+	 EXTRACT(YEAR FROM required_date)
+order by month_desc
+
