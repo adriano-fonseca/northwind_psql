@@ -161,7 +161,7 @@ order by valor desc
 
 
 
-
+Jandrei
 --First,Second and third Expensives Order done so far
 SELECT * 
 FROM
